@@ -15,6 +15,7 @@ type ProjectRow = {
   repository_url: string | null;
   demo_url: string | null;
   category: string;
+  door_ids: PortfolioProject["doorIds"];
   project_date: string | null;
   status: "draft" | "published";
 };
@@ -44,6 +45,7 @@ function mapRow(row: ProjectRow, coverImage: string, screenshots: string[]): Por
     repositoryUrl: row.repository_url ?? "",
     demoUrl: row.demo_url ?? "",
     category: row.category,
+    doorIds: row.door_ids ?? [],
     date: row.project_date ?? "",
     status: row.status,
   };
@@ -53,7 +55,7 @@ export async function listPublishedProjects(): Promise<PortfolioProject[]> {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("projects")
-    .select("id,sort_order,title,description,objective,technologies,steps,results,cover_image_path,screenshot_paths,repository_url,demo_url,category,project_date,status")
+    .select("id,sort_order,title,description,objective,technologies,steps,results,cover_image_path,screenshot_paths,repository_url,demo_url,category,door_ids,project_date,status")
     .eq("status", "published")
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: false });

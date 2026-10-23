@@ -139,6 +139,47 @@ function IdentityTerminal({
   );
 }
 
+function DoorProjectList({
+  projects,
+  className = "room-panel__projects",
+}: {
+  projects: PortfolioProject[];
+  className?: string;
+}) {
+  return (
+    <div aria-label="Projets affectés à cette porte" className={className}>
+      {projects.map((project) => (
+        <details className="archive-project" key={project.id}>
+          <summary>
+            <span>{project.category}{project.isExample ? " · DÉMO FICTIVE" : ""}</span>
+            <strong>{project.title}</strong>
+          </summary>
+          <p>{project.description}</p>
+          <b>OBJECTIF</b><p>{project.objective || "À compléter."}</p>
+          <b>TECHNOLOGIES</b>
+          <p className="archive-project__tags">{project.technologies.join(" · ") || "À compléter."}</p>
+          <b>ÉTAPES</b>
+          {project.steps.length > 0
+            ? <ol>{project.steps.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}</ol>
+            : <p>À compléter.</p>}
+          <b>RÉSULTATS</b><p>{project.results || "À compléter."}</p>
+          {project.coverImage && <img alt={`Illustration du projet ${project.title}`} loading="lazy" src={project.coverImage} />}
+          {project.screenshots.map((image, index) => (
+            <a className="archive-project__image" href={image} key={image} rel="noreferrer" target="_blank">
+              <img alt={`Capture ${index + 1} du projet ${project.title}`} loading="lazy" src={image} />
+            </a>
+          ))}
+          <div className="archive-project__links">
+            {project.repositoryUrl && <a href={project.repositoryUrl} rel="noreferrer" target="_blank">DÉPÔT ↗</a>}
+            {project.demoUrl && <a href={project.demoUrl} rel="noreferrer" target="_blank">DÉMONSTRATION ↗</a>}
+            {project.date && <span>{project.date}</span>}
+          </div>
+        </details>
+      ))}
+    </div>
+  );
+}
+
 function DoorPanel({
   room,
   onClose,
@@ -152,6 +193,10 @@ function DoorPanel({
   onOpenPortfolio: (section?: string) => void;
   projects: PortfolioProject[];
 }) {
+  const assignedProjects = projects.filter(
+    (project) => project.status === "published" && project.doorIds?.includes(room.id),
+  );
+
   return (
     <section aria-labelledby="door-panel-title" aria-modal="true" className="room-panel" role="dialog">
       <button aria-label="Fermer le panneau" className="room-panel__close" onClick={onClose} type="button">×</button>
@@ -159,40 +204,13 @@ function DoorPanel({
       <h2 id="door-panel-title">{room.label}</h2>
       <p className="room-panel__subtitle">{room.subtitle}</p>
       <p className="room-panel__description">{room.description}</p>
+      {assignedProjects.length > 0 && (
+        <DoorProjectList projects={assignedProjects} />
+      )}
       {room.id === "projects" ? (
         <>
-          <div className="room-panel__projects">
-            {projects.filter((project) => project.status === "published").map((project) => (
-              <details className="archive-project" key={project.id}>
-                <summary>
-                  <span>{project.category}{project.isExample ? " · DÉMO FICTIVE" : ""}</span>
-                  <strong>{project.title}</strong>
-                </summary>
-                <p>{project.description}</p>
-                <b>OBJECTIF</b><p>{project.objective || "À compléter."}</p>
-                <b>TECHNOLOGIES</b>
-                <p className="archive-project__tags">{project.technologies.join(" · ") || "À compléter."}</p>
-                <b>ÉTAPES</b>
-                {project.steps.length > 0
-                  ? <ol>{project.steps.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}</ol>
-                  : <p>À compléter.</p>}
-                <b>RÉSULTATS</b><p>{project.results || "À compléter."}</p>
-                {project.coverImage && <img alt={`Illustration du projet ${project.title}`} loading="lazy" src={project.coverImage} />}
-                {project.screenshots.map((image, index) => (
-                  <a className="archive-project__image" href={image} key={image} rel="noreferrer" target="_blank">
-                    <img alt={`Capture ${index + 1} du projet ${project.title}`} loading="lazy" src={image} />
-                  </a>
-                ))}
-                <div className="archive-project__links">
-                  {project.repositoryUrl && <a href={project.repositoryUrl} rel="noreferrer" target="_blank">DÉPÔT ↗</a>}
-                  {project.demoUrl && <a href={project.demoUrl} rel="noreferrer" target="_blank">DÉMONSTRATION ↗</a>}
-                  {project.date && <span>{project.date}</span>}
-                </div>
-              </details>
-            ))}
-          </div>
-          {projects.filter((project) => project.status === "published").length === 0 && (
-            <p className="room-panel__pending">Aucun projet publié pour le moment.</p>
+          {assignedProjects.length === 0 && (
+            <p className="room-panel__pending">Aucun projet n’est affecté à cette porte pour le moment.</p>
           )}
           <button className="universe-button universe-button--quiet" onClick={() => onOpenPortfolio("projets")} type="button">
             OUVRIR LE CATALOGUE COMPLET <span aria-hidden="true">↗</span>
@@ -239,6 +257,9 @@ export function UniverseExperience({ onOpenPortfolio, onReturnToEntrance, projec
   const [fallbackMode, setFallbackMode] = useState(false);
   const transitionLock = useRef(false);
   const fallbackTimer = useRef<number | undefined>(undefined);
+  const networkProjects = projects.filter(
+    (project) => project.status === "published" && project.doorIds?.includes("network"),
+  );
 
   useEffect(() => {
     if (identityReady || fallbackMode) return;
@@ -468,6 +489,9 @@ export function UniverseExperience({ onOpenPortfolio, onReturnToEntrance, projec
           <p className="eyebrow">SALLE 02 / NETWORK OPERATIONS</p>
           <h1 id="network-room-title">Network <span>operations</span></h1>
           <p className="network-room-panel__intro">Compétences réseau — niveau et réalisations à compléter selon votre parcours réel.</p>
+          {networkProjects.length > 0 && (
+            <DoorProjectList className="room-panel__projects network-room-projects" projects={networkProjects} />
+          )}
           <div aria-label="Topologie réseau de démonstration" className="network-topology">
             <p className="network-topology__heading">TOPOLOGIE LOGIQUE / DÉMONSTRATION</p>
             <div className="network-topology__core">

@@ -44,6 +44,13 @@
 .admin-form__heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .admin-form__heading h2, .admin-projects > h2 { margin: 0 0 5px; font-size: 17px; letter-spacing: -.03em; }
 .admin-form__row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.admin-door-fieldset { display: grid; gap: 10px; min-width: 0; margin: 0; padding: 12px; border: 1px solid rgba(131, 168, 188, .27); }
+.admin-door-fieldset legend { padding-inline: 5px; color: #b4c3cd; font: 9px "DM Mono", monospace; letter-spacing: .06em; }
+.admin-door-fieldset > .admin-help { margin: 0; }
+.admin-door-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+.admin-door-options label { display: flex; align-items: center; gap: 8px; color: #c4d1d8; font: 8px "DM Mono", monospace; cursor: pointer; }
+.admin-door-options input[type="checkbox"] { width: 16px; min-height: 16px; flex: 0 0 auto; margin: 0; accent-color: #b5f36d; }
+.admin-door-options input[type="checkbox"]:focus-visible { outline: 2px solid #70b9ff; outline-offset: 2px; }
 .admin-help, .admin-session { color: #879aa6; font: 8px/1.7 "DM Mono", monospace; }
 .admin-projects { position: sticky; top: 20px; }
 .admin-projects > p { color: #9aaab4; font-size: 11px; line-height: 1.7; }

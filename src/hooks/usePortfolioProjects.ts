@@ -6,6 +6,22 @@ import type { PortfolioProject } from "../types/project";
 
 export type ProjectSourceStatus = "not-configured" | "loading" | "connected" | "unavailable";
 
+function mergePublishedProjects(publishedProjects: PortfolioProject[]) {
+  const exampleTitles = new Set(exampleProjects.map((project) => project.title));
+  const publishedExamples = new Map<string, PortfolioProject>();
+
+  for (const project of publishedProjects) {
+    if (exampleTitles.has(project.title) && !publishedExamples.has(project.title)) {
+      publishedExamples.set(project.title, project);
+    }
+  }
+
+  return [
+    ...exampleProjects.map((project) => publishedExamples.get(project.title) ?? project),
+    ...publishedProjects.filter((project) => !exampleTitles.has(project.title)),
+  ];
+}
+
 export function usePortfolioProjects() {
   const [projects, setProjects] = useState<PortfolioProject[]>(exampleProjects);
   const [sourceStatus, setSourceStatus] = useState<ProjectSourceStatus>(
@@ -19,7 +35,7 @@ export function usePortfolioProjects() {
     listPublishedProjects()
       .then((published) => {
         if (!active) return;
-        setProjects([...exampleProjects, ...published]);
+        setProjects(mergePublishedProjects(published));
         setSourceStatus("connected");
         setSourceError("");
       })

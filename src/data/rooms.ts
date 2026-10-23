@@ -84,3 +84,13 @@ export const rooms: Room[] = [
     z: -19,
   },
 ];
+
+export const projectDoorOptions: { id: RoomId; label: string }[] = [
+  { id: "contact", label: "COMMUNICATION HUB" },
+  { id: "certifications", label: "CERTIFICATIONS" },
+  { id: "cybersecurity", label: "CYBERSECURITY LAB" },
+  { id: "network", label: "NETWORKING LAB" },
+  { id: "server", label: "ADMINISTRATION LAB" },
+  { id: "virtualization", label: "VIRTUALIZATION LAB" },
+  { id: "projects", label: "PROJECT ARCHIVE" },
+];

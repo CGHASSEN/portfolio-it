@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { projectDoorOptions } from "../../data/rooms";
 import { projectImageBucket, supabase, supabaseConfigured } from "../../lib/supabase";
-import type { ManagedProject, ProjectStatus } from "../../types/project";
+import type { ManagedProject, ProjectDoorId, ProjectStatus } from "../../types/project";
 import "./admin.css";
 
 type AdminStatus = "loading" | "unconfigured" | "signed-out" | "checking" | "mfa-challenge" | "mfa-enroll" | "mfa-restart" | "not-admin" | "admin" | "error";
@@ -21,6 +22,7 @@ type ProjectRow = {
   repository_url: string | null;
   demo_url: string | null;
   category: string;
+  door_ids: ProjectDoorId[] | null;
   project_date: string | null;
   status: ProjectStatus;
   created_at: string;
@@ -42,6 +44,7 @@ const emptyProject: ManagedProject = {
   repositoryUrl: "",
   demoUrl: "",
   category: "PROJET IT",
+  doorIds: [],
   date: "",
   status: "draft",
 };
@@ -63,6 +66,7 @@ function mapProject(row: ProjectRow): ManagedProject {
     repositoryUrl: row.repository_url ?? "",
     demoUrl: row.demo_url ?? "",
     category: row.category,
+    doorIds: row.door_ids ?? [],
     date: row.project_date ?? "",
     status: row.status,
   };
@@ -240,7 +244,7 @@ export function AdminPage() {
 
         const result = await client
           .from("projects")
-          .select("id,sort_order,title,description,objective,technologies,steps,results,cover_image_path,screenshot_paths,repository_url,demo_url,category,project_date,status,created_at")
+          .select("id,sort_order,title,description,objective,technologies,steps,results,cover_image_path,screenshot_paths,repository_url,demo_url,category,door_ids,project_date,status,created_at")
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: false });
         if (!isCurrent()) return;
@@ -302,7 +306,7 @@ export function AdminPage() {
     if (!client || status !== "admin") return;
     const result = await client
       .from("projects")
-      .select("id,sort_order,title,description,objective,technologies,steps,results,cover_image_path,screenshot_paths,repository_url,demo_url,category,project_date,status,created_at")
+      .select("id,sort_order,title,description,objective,technologies,steps,results,cover_image_path,screenshot_paths,repository_url,demo_url,category,door_ids,project_date,status,created_at")
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: false });
     if (result.error) throw new Error(result.error.message);
@@ -463,6 +467,7 @@ export function AdminPage() {
         repository_url: form.repositoryUrl.trim() || null,
         demo_url: form.demoUrl.trim() || null,
         category: form.category.trim(),
+        door_ids: form.doorIds,
         project_date: form.date || null,
         status: form.status,
         updated_at: new Date().toISOString(),
@@ -651,6 +656,27 @@ export function AdminPage() {
                   </div>
                   <label>Titre<input maxLength={160} onChange={(event) => updateForm("title", event.target.value)} required value={form.title} /></label>
                   <label>Catégorie<input onChange={(event) => updateForm("category", event.target.value)} required value={form.category} /></label>
+                  <fieldset aria-labelledby="admin-door-options-title" className="admin-door-fieldset">
+                    <legend id="admin-door-options-title">Porte de diffusion</legend>
+                    <p className="admin-help">Sélectionnez une ou plusieurs portes dans lesquelles ce projet doit apparaître.</p>
+                    <div className="admin-door-options">
+                      {projectDoorOptions.map((door) => (
+                        <label key={door.id}>
+                          <input
+                            checked={form.doorIds.includes(door.id)}
+                            onChange={(event) => updateForm(
+                              "doorIds",
+                              event.target.checked
+                                ? [...form.doorIds, door.id]
+                                : form.doorIds.filter((doorId) => doorId !== door.id),
+                            )}
+                            type="checkbox"
+                          />
+                          <span>{door.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
                   <label>Description<textarea onChange={(event) => updateForm("description", event.target.value)} required rows={3} value={form.description} /></label>
                   <label>Objectif<textarea onChange={(event) => updateForm("objective", event.target.value)} rows={2} value={form.objective} /></label>
                   <label>Technologies — une par ligne<textarea onChange={(event) => updateForm("technologies", event.target.value.split("\n").map((item) => item.trim()).filter(Boolean))} rows={3} value={form.technologies.join("\n")} /></label>
