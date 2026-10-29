@@ -7,6 +7,7 @@ import type { Room, RoomId } from "../../data/rooms";
 import { networkTopology } from "../../data/networkTopology";
 import { skillGroups } from "../../data/portfolio";
 import type { PortfolioProject } from "../../types/project";
+import { ProjectCoverMedia } from "../ProjectCoverMedia";
 import "./universe.css";
 
 type UniverseExperienceProps = {
@@ -163,7 +164,7 @@ function DoorProjectList({
             ? <ol>{project.steps.map((step, index) => <li key={`${index}-${step}`}>{step}</li>)}</ol>
             : <p>À compléter.</p>}
           <b>RÉSULTATS</b><p>{project.results || "À compléter."}</p>
-          {project.coverImage && <img alt={`Illustration du projet ${project.title}`} loading="lazy" src={project.coverImage} />}
+          {project.coverImage && <ProjectCoverMedia alt={`Illustration du projet ${project.title}`} className="archive-project__cover" src={project.coverImage} />}
           {project.screenshots.map((image, index) => (
             <a className="archive-project__image" href={image} key={image} rel="noreferrer" target="_blank">
               <img alt={`Capture ${index + 1} du projet ${project.title}`} loading="lazy" src={image} />

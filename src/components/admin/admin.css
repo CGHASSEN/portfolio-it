@@ -34,7 +34,7 @@
 .admin-form textarea { resize: vertical; line-height: 1.6; }
 .admin-form input[type="file"] { min-height: 44px; padding: 8px; }
 .admin-form input[type="file"]::file-selector-button { margin-right: 10px; padding: 6px 9px; border: 1px solid rgba(112, 185, 255, .35); color: #cfe8f4; background: #132630; cursor: pointer; }
-.admin-cover-preview { width: 100%; max-height: 240px; border: 1px solid rgba(131, 168, 188, .27); background: #071017; object-fit: contain; }
+.admin-cover-preview { display: block; width: 100%; max-height: 240px; border: 1px solid rgba(131, 168, 188, .27); background: #071017; object-fit: contain; }
 .admin-login input:focus, .admin-form input:focus, .admin-form textarea:focus, .admin-form select:focus { outline: 2px solid #70b9ff; outline-offset: 1px; }
 .admin-button { min-height: 42px; padding: 0 15px; border: 1px solid #b5f36d; border-radius: 2px; color: #11170b; background: #b5f36d; font: 9px "DM Mono", monospace; letter-spacing: .08em; cursor: pointer; }
 .admin-button:disabled { cursor: wait; opacity: .55; }

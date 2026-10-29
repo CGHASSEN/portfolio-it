@@ -3,7 +3,15 @@ import type { FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { projectDoorOptions } from "../../data/rooms";
 import { projectImageBucket, supabase, supabaseConfigured } from "../../lib/supabase";
+import {
+  MAX_PROJECT_MEDIA_SIZE_BYTES,
+  PROJECT_MEDIA_URL_REFRESH_MS,
+  validateCoverMediaFile,
+  validateScreenshotFile,
+} from "../../lib/projectMedia";
+import { createSignedProjectMediaUrl } from "../../services/projects";
 import type { ManagedProject, ProjectDoorId, ProjectStatus } from "../../types/project";
+import { ProjectCoverMedia } from "../ProjectCoverMedia";
 import "./admin.css";
 
 type AdminStatus = "loading" | "unconfigured" | "signed-out" | "checking" | "mfa-challenge" | "mfa-enroll" | "mfa-restart" | "not-admin" | "admin" | "error";
@@ -119,33 +127,56 @@ export function AdminPage() {
   useEffect(() => {
     let active = true;
     setCoverPreviewUrl("");
+    if (coverFile) {
+      const fileError = validateCoverMediaFile(coverFile);
+      if (fileError) return () => { active = false; };
+      const objectUrl = URL.createObjectURL(coverFile);
+      setCoverPreviewUrl(objectUrl);
+      return () => {
+        active = false;
+        URL.revokeObjectURL(objectUrl);
+      };
+    }
+
     const client = supabase;
     if (!form.coverImagePath || !client) return () => { active = false; };
 
+    let refreshing = false;
+    let signedAt = 0;
     const loadCoverPreview = async () => {
-      const { data, error: previewError } = await client.storage
-        .from(projectImageBucket)
-        .createSignedUrl(form.coverImagePath, 60 * 60);
-      if (!active) return;
-      if (previewError) {
-        setError(`Impossible de charger l’aperçu de la couverture : ${previewError.message}`);
-        return;
+      if (refreshing) return;
+      refreshing = true;
+      try {
+        const signedUrl = await createSignedProjectMediaUrl(form.coverImagePath);
+        if (!active) return;
+        setCoverPreviewUrl(signedUrl);
+        signedAt = Date.now();
+      } catch (caught: unknown) {
+        if (active) {
+          setError(caught instanceof Error
+            ? `Impossible de charger l’aperçu de la couverture : ${caught.message}`
+            : "Impossible de charger l’aperçu de la couverture.");
+        }
+      } finally {
+        refreshing = false;
       }
-      setCoverPreviewUrl(data.signedUrl);
     };
 
-    void loadCoverPreview().catch((caught: unknown) => {
-      if (active) {
-        setError(caught instanceof Error
-          ? `Impossible de charger l’aperçu de la couverture : ${caught.message}`
-          : "Impossible de charger l’aperçu de la couverture.");
+    const refreshIfStale = () => {
+      if (document.visibilityState === "visible" && Date.now() - signedAt >= PROJECT_MEDIA_URL_REFRESH_MS) {
+        void loadCoverPreview();
       }
-    });
+    };
+    void loadCoverPreview();
+    const intervalId = window.setInterval(() => void loadCoverPreview(), PROJECT_MEDIA_URL_REFRESH_MS);
+    document.addEventListener("visibilitychange", refreshIfStale);
 
     return () => {
       active = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", refreshIfStale);
     };
-  }, [form.coverImagePath]);
+  }, [coverFile, form.coverImagePath]);
 
   useEffect(() => {
     const client = supabase;
@@ -432,6 +463,14 @@ export function AdminPage() {
     event.preventDefault();
     const client = supabase;
     if (!client || status !== "admin") return;
+    const coverFileError = coverFile ? validateCoverMediaFile(coverFile) : "";
+    const screenshotFileError = screenshotFiles
+      .map(validateScreenshotFile)
+      .find(Boolean) ?? "";
+    if (coverFileError || screenshotFileError) {
+      setError(coverFileError || screenshotFileError);
+      return;
+    }
     setBusy(true);
     setError("");
     setMessage("");
@@ -485,7 +524,7 @@ export function AdminPage() {
       if (removed.length > 0) {
         const cleanup = await client.storage.from(projectImageBucket).remove(removed);
         if (cleanup.error) {
-          setError(`Projet enregistré, mais certaines anciennes images n’ont pas pu être supprimées : ${cleanup.error.message}`);
+          setError(`Projet enregistré, mais certains anciens médias n’ont pas pu être supprimés : ${cleanup.error.message}`);
         }
       }
 
@@ -496,7 +535,7 @@ export function AdminPage() {
       if (newlyUploaded.length > 0 && !persisted) {
         const cleanup = await client.storage.from(projectImageBucket).remove(newlyUploaded);
         if (cleanup.error) {
-          setError(`Échec de l’enregistrement. Le nettoyage de certaines images a aussi échoué : ${cleanup.error.message}`);
+          setError(`Échec de l’enregistrement. Le nettoyage de certains médias a aussi échoué : ${cleanup.error.message}`);
           setBusy(false);
           return;
         }
@@ -522,7 +561,7 @@ export function AdminPage() {
 
   const deleteProject = async (project: ManagedProject) => {
     const client = supabase;
-    if (!client || status !== "admin" || !window.confirm(`Supprimer définitivement « ${project.title} » et ses images ?`)) return;
+    if (!client || status !== "admin" || !window.confirm(`Supprimer définitivement « ${project.title} » et ses médias ?`)) return;
     setBusy(true);
     setError("");
     const deletion = await client.from("projects").delete().eq("id", project.id);
@@ -534,7 +573,7 @@ export function AdminPage() {
     const paths = [project.coverImagePath, ...project.screenshotPaths].filter(Boolean);
     if (paths.length > 0) {
       const cleanup = await client.storage.from(projectImageBucket).remove(paths);
-      if (cleanup.error) setError(`Projet supprimé, mais certaines images n’ont pas pu être supprimées : ${cleanup.error.message}`);
+      if (cleanup.error) setError(`Projet supprimé, mais certains médias n’ont pas pu être supprimés : ${cleanup.error.message}`);
     }
     await loadProjects();
     if (form.id === project.id) resetForm();
@@ -688,16 +727,16 @@ export function AdminPage() {
                     <label>Date<input onChange={(event) => updateForm("date", event.target.value)} type="date" value={form.date} /></label>
                     <label>Publication<select onChange={(event) => updateForm("status", event.target.value as ProjectStatus)} value={form.status}><option value="draft">Brouillon</option><option value="published">Publié</option></select></label>
                   </div>
-                  <label>Image de couverture<input accept="image/jpeg,image/png,image/webp" onChange={(event) => setCoverFile(event.target.files?.[0] ?? null)} type="file" /></label>
-                  {coverPreviewUrl && !coverFile && <img alt={`Couverture actuelle : ${form.title}`} className="admin-cover-preview" loading="lazy" src={coverPreviewUrl} />}
+                  <label>Couverture (image ou vidéo MP4)<input accept="image/jpeg,image/png,image/webp,video/mp4" onChange={(event) => { const file = event.target.files?.[0] ?? null; setCoverFile(file); setError(file ? validateCoverMediaFile(file) : ""); }} type="file" /></label>
+                  {coverPreviewUrl && <ProjectCoverMedia alt={`Couverture : ${form.title}`} className="admin-cover-preview" mediaPath={coverFile?.name ?? form.coverImagePath} src={coverPreviewUrl} />}
                   {form.coverImagePath && <button className="admin-text-button" onClick={() => updateForm("coverImagePath", "")} type="button">RETIRER LA COUVERTURE ACTUELLE</button>}
-                  <label>Captures d’écran<input accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => setScreenshotFiles(Array.from(event.target.files ?? []))} type="file" /></label>
+                  <label>Captures d’écran<input accept="image/jpeg,image/png,image/webp" multiple onChange={(event) => { const files = Array.from(event.target.files ?? []); setScreenshotFiles(files); setError(files.map(validateScreenshotFile).find(Boolean) ?? ""); }} type="file" /></label>
                   {form.screenshotPaths.length > 0 && (
                     <ul className="admin-image-paths">
                       {form.screenshotPaths.map((path) => <li key={path}>{path}<button aria-label={`Retirer ${path}`} onClick={() => updateForm("screenshotPaths", form.screenshotPaths.filter((item) => item !== path))} type="button">×</button></li>)}
                     </ul>
                   )}
-                  <p className="admin-help">Images JPEG, PNG ou WebP · maximum 10 Mo par fichier.</p>
+                  <p className="admin-help">Couverture : images JPEG, PNG ou WebP, ou vidéo MP4 · captures : images JPEG, PNG ou WebP · maximum {MAX_PROJECT_MEDIA_SIZE_BYTES / 1_000_000} MB par fichier.</p>
                   <button className="admin-button" disabled={busy} type="submit">{busy ? "ENREGISTREMENT…" : "ENREGISTRER LE PROJET"}</button>
                 </form>
                 <section aria-labelledby="admin-project-list" className="admin-projects">

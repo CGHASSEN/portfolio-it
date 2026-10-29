@@ -1,5 +1,6 @@
 import type { PortfolioProject } from "../types/project";
 import { projectImageBucket, supabase } from "../lib/supabase";
+import { PROJECT_MEDIA_SIGNED_URL_TTL_SECONDS } from "../lib/projectMedia";
 
 type ProjectRow = {
   id: string;
@@ -20,14 +21,18 @@ type ProjectRow = {
   status: "draft" | "published";
 };
 
-async function signedImage(path: string | null | undefined) {
-  if (!path) return "";
+export async function createSignedProjectMediaUrl(path: string) {
   if (!supabase) throw new Error("Supabase n’est pas configuré.");
   const { data, error } = await supabase.storage
     .from(projectImageBucket)
-    .createSignedUrl(path, 60 * 60);
-  if (error) throw new Error(`Impossible de charger une image de projet : ${error.message}`);
+    .createSignedUrl(path, PROJECT_MEDIA_SIGNED_URL_TTL_SECONDS);
+  if (error) throw new Error(`Impossible de charger un média de projet : ${error.message}`);
   return data.signedUrl;
+}
+
+async function signedMedia(path: string | null | undefined) {
+  if (!path) return "";
+  return createSignedProjectMediaUrl(path);
 }
 
 function mapRow(row: ProjectRow, coverImage: string, screenshots: string[]): PortfolioProject {
@@ -63,8 +68,8 @@ export async function listPublishedProjects(): Promise<PortfolioProject[]> {
 
   return Promise.all((data as ProjectRow[]).map(async (row) => {
     const [coverImage, screenshots] = await Promise.all([
-      signedImage(row.cover_image_path),
-      Promise.all((row.screenshot_paths ?? []).map((path) => signedImage(path))),
+      signedMedia(row.cover_image_path),
+      Promise.all((row.screenshot_paths ?? []).map((path) => signedMedia(path))),
     ]);
     return mapRow(row, coverImage, screenshots);
   }));

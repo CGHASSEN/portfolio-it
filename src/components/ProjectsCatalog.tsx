@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { PortfolioProject } from "../types/project";
 import type { ProjectSourceStatus } from "../hooks/usePortfolioProjects";
+import { ProjectCoverMedia } from "./ProjectCoverMedia";
 
 export function ProjectsCatalog({
   projects,
@@ -52,7 +53,7 @@ export function ProjectsCatalog({
                 </button>
                 {expanded && (
                   <div className="project-details">
-                    {project.coverImage && <img alt={`Illustration : ${project.title}`} src={project.coverImage} />}
+                    {project.coverImage && <ProjectCoverMedia alt={`Illustration : ${project.title}`} className="project-details__cover" src={project.coverImage} />}
                     <h4>Objectif</h4>
                     <p>{project.objective || "À compléter."}</p>
                     <h4>Étapes de réalisation</h4>
