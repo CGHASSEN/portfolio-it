@@ -1,12 +1,12 @@
 .entrance {
   position: fixed;
-  z-index: 30;
+  z-index: var(--z-entrance);
   inset: 0;
   overflow: hidden;
-  color: #e8eef4;
-  background: #070b10;
+  color: var(--color-text);
+  background: var(--color-bg);
   opacity: 1;
-  transition: opacity 900ms ease, transform 1100ms cubic-bezier(.2,.7,.2,1);
+  transition: opacity var(--duration-slow) ease, transform 1100ms cubic-bezier(.2,.7,.2,1);
 }
 
 .entrance--leaving {
@@ -74,9 +74,9 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: #b9c6d2;
+  color: var(--color-text-secondary);
   font-family: "DM Mono", monospace;
-  font-size: 9px;
+  font-size: var(--text-xs);
   letter-spacing: .16em;
   text-shadow: 0 1px 12px #000;
 }
@@ -152,9 +152,9 @@
 
 .entrance__instruction {
   margin: 11px 0 16px;
-  color: #d5dee7;
+  color: var(--color-text);
   font-family: "DM Mono", monospace;
-  font-size: 10px;
+  font-size: var(--text-xs);
   letter-spacing: .2em;
   text-shadow: 0 1px 12px #000;
 }
@@ -167,11 +167,11 @@
   gap: 24px;
   padding: 0 19px;
   border: 1px solid rgba(181, 243, 109, .78);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   color: #10150c;
   background: #b5f36d;
   font-family: "Manrope", sans-serif;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 700;
   cursor: pointer;
   pointer-events: auto;
@@ -184,9 +184,9 @@
 .entrance__button span { font-size: 16px; }
 .entrance__hint {
   margin-top: 12px;
-  color: #a0adbb;
+  color: var(--color-text-secondary);
   font-family: "DM Mono", monospace;
-  font-size: 8px;
+  font-size: var(--text-xs);
   letter-spacing: .04em;
   text-shadow: 0 1px 10px #000;
 }
@@ -297,7 +297,7 @@
   .entrance__prompt h1 { max-width: 100%; font-size: clamp(27px, 8vw, 42px); }
   .entrance__welcome-fr { margin-top: 6px; font-size: clamp(14px, 4vw, 18px); }
   .entrance__welcome-ar { margin-top: 4px; font-size: clamp(17px, 5vw, 22px); }
-  .entrance__instruction { margin: 8px 0 12px; font-size: 8px; letter-spacing: .14em; }
+  .entrance__instruction { margin: 8px 0 12px; font-size: var(--text-xs); letter-spacing: .1em; }
   .entrance__button { min-height: 44px; }
   .entrance__hint { margin-top: 9px; }
   .entrance__hint { max-width: 290px; line-height: 1.6; }
